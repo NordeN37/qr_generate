@@ -49,7 +49,7 @@ func main() {
 			log.Println(err)
 		}
 	})
-	http.ListenAndServe("0.0.0.0:80", nil)
+	http.ListenAndServe(":8080", nil)
 }
 
 func generateQrBase64(qrData string) string {
