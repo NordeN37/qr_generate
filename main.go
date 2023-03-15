@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"qr_code_generate/utils/logger"
 )
 
 // Создаем структуру для передачи данных в шаблон
@@ -25,6 +26,7 @@ func Init() {
 
 func main() {
 	Init()
+	log := logger.New("debug")
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var qrData string
 		var resData Data
@@ -32,7 +34,11 @@ func main() {
 		case http.MethodPost:
 			if qrData = r.FormValue("qr_data"); qrData == "" {
 				var dataErr = "input no data"
-				bImg, _ := os.ReadFile("./html/image_not_found.png")
+				bImg, err := os.ReadFile("./html/image_not_found.png")
+				if err != nil {
+					log.Err(err).Send()
+					return
+				}
 				str := base64.StdEncoding.EncodeToString(bImg)
 				resData = Data{Png: str, Msg: dataErr}
 			} else {
@@ -46,10 +52,15 @@ func main() {
 		}
 		// Применяем шаблон к данным и отправляем результат в ответ
 		if err := tmpl.Execute(w, resData); err != nil {
-			log.Println(err)
+			log.Err(err).Send()
+			return
 		}
+		log.Info().Str("qr_data", qrData).Send()
 	})
-	http.ListenAndServe(":8080", nil)
+
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal().Err(err).Msg("server listen error")
+	}
 }
 
 func generateQrBase64(qrData string) string {
